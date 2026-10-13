@@ -1,0 +1,10 @@
+.env
+venv/
+.venv/
+__pycache__/
+*.pyc
+uploads/
+scans/
+*.mp3
+.vscode/
+storage/*
