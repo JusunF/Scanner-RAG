@@ -16,10 +16,11 @@ class SparseRetriever:
         tokenized = [tokenize(c.text) for c in chunks]
         self.bm25 = BM25Okapi(tokenized)
 
-    def search(self, query, top_k=5, min_score=0.01):
+    def search(self, query, top_k=5, min_score=0.01, doc_id=None):
         scores = self.bm25.get_scores(tokenize(query))
-        ranked = sorted(zip(self.chunks, scores), key=lambda x: x[1], reverse=True)
+        pairs = list(zip(self.chunks, scores))
+        if doc_id is not None:
+            pairs = [(c, s) for c, s in pairs if c.doc_id == str(doc_id)]
+        ranked = sorted(pairs, key=lambda x: x[1], reverse=True)
         ranked = [(chunk, score) for chunk, score in ranked if score > min_score]
         return ranked[:top_k]
-
-    

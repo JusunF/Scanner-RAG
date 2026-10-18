@@ -89,17 +89,18 @@ class PgDenseRetriever:
         self.chunks_by_id = chunks_by_id
         self.embedder = embedder
 
-    def search(self, query, top_k=5):
+    def search(self, query, top_k=5, doc_id=None):
         from sqlalchemy import select
         from app.database import SessionLocal
         from app.models import Chunk as ChunkRow
 
         qv = self.embedder.encode([query])[0].astype("float32")
         dist = ChunkRow.embedding.cosine_distance(qv)
+        stmt = select(ChunkRow.chunk_id, dist).order_by(dist).limit(top_k)
+        if doc_id is not None:
+            stmt = stmt.where(ChunkRow.document_id == doc_id)
         with SessionLocal() as db:
-            rows = db.execute(
-                select(ChunkRow.chunk_id, dist).order_by(dist).limit(top_k)
-            ).all()
+            rows = db.execute(stmt).all()
         return [(self.chunks_by_id[cid], 1 - d) for cid, d in rows]
 
 

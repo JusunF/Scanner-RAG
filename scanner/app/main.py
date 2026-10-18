@@ -2,6 +2,7 @@ import shutil
 import uuid
 import tempfile
 import yt_dlp
+import re
 from pydantic import BaseModel
 from pathlib import Path
 
@@ -55,6 +56,13 @@ def get_or_404(db: Session, doc_id: int) -> Document:
         raise HTTPException(404, "Document not found")
     return doc
 
+def next_free_id(db: Session) -> int:
+    used = set(db.scalars(select(Document.id)).all())
+    n=1
+    while n in used:
+        n += 1
+    return n
+
 @app.post("/api/documents")
 def upload(file: UploadFile = File(...), db: Session = Depends(get_db)):
     ext = Path(file.filename or " ").suffix.lower()
@@ -73,6 +81,7 @@ def upload(file: UploadFile = File(...), db: Session = Depends(get_db)):
         raise HTTPException(422, f"Could not read this file: {e}")
 
     doc = Document(
+        id=next_free_id(db),
         original_name=file.filename,
         stored_name=stored_name,
         content_type=file.content_type or "",
@@ -158,6 +167,16 @@ def url_to_mp3(body: UrlIn, background: BackgroundTasks):
 
     background.add_task(shutil.rmtree, tmp, True)  # clean up after sending
     return FileResponse(mp3, filename=mp3.name, media_type="audio/mpeg")
+
+ID_PATTERN = re.compile(r"\b(?:doc(?:ument)?|id)\s*#?\s*(\d+)\b|#(\d+)\b", re.I)
+
+def parse_doc_id(question: str):
+    m = ID_PATTERN.search(question)
+    if not m:
+        return None, question
+    doc_id = int(m.group(1) or m.group(2))
+    cleaned = ID_PATTERN.sub("", question).strip(" :,-") or question
+    return doc_id, cleaned
 
 class AskIn(BaseModel):
     question: str

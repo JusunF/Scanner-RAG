@@ -57,7 +57,7 @@
 </button>
 <div id="chatBox">
   <div id="chatHead"><span>Ask your documents</span><button class="btn ghost" onclick="toggleChat()" aria-label="Close">✕</button></div>
-  <div id="chatMsgs"><div class="msg bot">Hi! Ask me anything about the documents you've uploaded.</div></div>
+  <div id="chatMsgs"><div class="msg bot">Hi! Ask me about your documents. Tip: type "doc 3" to ask about one document only.</div></div>
   <form id="chatForm" onsubmit="sendChat(event)">
     <input id="chatInput" placeholder="Type a question…" autocomplete="off">
     <button class="btn primary" type="submit">Send</button>
@@ -89,7 +89,7 @@ async function load(){
     <div class="row ${d.id === activeId ? 'active' : ''}">
       <div class="info">
         <div class="name" title="${esc(d.original_name)}">${esc(d.original_name)}</div>
-        <div class="meta">${fmtSize(d.size_bytes)} · ${new Date(d.created_at).toLocaleDateString()}</div>
+        <div class="meta">ID ${d.id} · ${fmtSize(d.size_bytes)} · ${new Date(d.created_at).toLocaleDateString()}</div>
       </div>
       <div class="actions">
         <button class="btn ghost" onclick="view(${d.id})">View text</button>
@@ -109,8 +109,10 @@ async function uploadFiles(files){
     const fd = new FormData(); fd.append('file', f);
     try {
       const r = await fetch('/api/documents', {method:'POST', body: fd});
-      if (r.ok) toast('Scanned ' + f.name);
-      else toast((await r.json()).detail || 'Upload failed');
+      if (r.ok) {
+        const d = await r.json();
+        toast('Scanned ' + f.name + ' (ID ' + d.id + ')');
+      } else toast((await r.json()).detail || 'Upload failed');
     } catch { toast('Could not reach the server'); }
   }
   $('dropTitle').textContent = 'Drop files here or click to browse';
@@ -126,7 +128,7 @@ drop.addEventListener('drop', e => e.dataTransfer.files.length && uploadFiles([.
 async function view(id){
   const d = await (await fetch('/api/documents/' + id)).json();
   activeId = id;
-  $('previewName').textContent = d.original_name;
+  $('previewName').textContent = 'ID ' + d.id + ' · ' + d.original_name;
   $('text').textContent = d.extracted_text || '(no text found)';
   $('previewWrap').hidden = false;
   $('previewWrap').scrollIntoView({behavior:'smooth', block:'nearest'});

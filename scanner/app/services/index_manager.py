@@ -47,7 +47,7 @@ def remove(db: Session, doc_id: int) -> None:
     db.execute(delete(ChunkRow).where(ChunkRow.document_id == doc_id))
     db.commit()
 
-def search(query: str, top_k: int = 5):
+def search(query: str, top_k: int = 5, doc_id: int | None = None):
     if _hybrid is None:
         return []
     return _hybrid.search(query, top_k=top_k)

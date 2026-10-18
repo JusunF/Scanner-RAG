@@ -6,7 +6,8 @@ class HybridRetriever:
         self.dense = dense_retriever
         self.chunks_by_id = {c.chunk_id: c for c in sparse_retriever.chunks}
 
-    def search(self, query, top_k=5, candidate_k=20, rrf_k=60):
+    def search(self, query, top_k=5, candidate_k=20, rrf_k=60, doc_id=None):
+        kw = {"doc_id": doc_id} if doc_id is not None else {}
         sparse_results = self.sparse.search(query, top_k=candidate_k) # BM25 ranking
         dense_results = self.dense.search(query, top_k=candidate_k) # embedding ranking
 
